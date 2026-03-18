@@ -71,4 +71,8 @@ CloudShare/
 ```
 
 ---
+## Login Page
+![Login](screenshots/login.png)
 
+## Dashboard
+![Dashboard](screenshots/application.png)
