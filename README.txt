@@ -72,10 +72,4 @@ CloudShare/
 
 ---
 
-## NO API KEY NEEDED
-This project uses only:
-- Node.js (free)
-- PostgreSQL (free)
-- npm packages (free)
 
-No external API keys required.
