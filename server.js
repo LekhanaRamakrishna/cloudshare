@@ -31,12 +31,16 @@ const pool = process.env.DATABASE_URL
       password: process.env.DB_PASS || 'admin123',
     });
 
-// Auto-create tables on startup — no manual SQL needed
+// Auto-create tables on startup — runs before server accepts any requests
 async function initDB() {
+  const client = await pool.connect();
   try {
-    await pool.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
+    console.log('⏳ Setting up database tables...');
 
-    await pool.query(`
+    await client.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
+    console.log('✅ pgcrypto extension ready');
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email       VARCHAR(255) UNIQUE NOT NULL,
@@ -44,8 +48,9 @@ async function initDB() {
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ users table ready');
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS files (
         id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         original_name  VARCHAR(500) NOT NULL,
@@ -60,16 +65,28 @@ async function initDB() {
         created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ files table ready');
+    console.log('✅ Database fully initialised.');
 
-    console.log('✅ Connected to PostgreSQL. Tables ready.');
   } catch (err) {
-    console.error('❌ Database setup failed:', err.message);
-    console.log('   → Check your DATABASE_URL environment variable on Render.');
+    console.error('❌ Database init failed:', err.message);
+    console.error(err.stack);
     process.exit(1);
+  } finally {
+    client.release();
   }
 }
 
-initDB();
+// Start server ONLY after DB is ready
+initDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 CloudShare → http://localhost:${PORT}`);
+    console.log('─'.repeat(48));
+  });
+}).catch(err => {
+  console.error('Fatal startup error:', err.message);
+  process.exit(1);
+});
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
 // On Render: use /tmp (writable). On local: use uploads/ folder.
@@ -317,8 +334,4 @@ function pwPage(id, name, wrong = false) {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Password Required</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);min-height:100vh;display:flex;align-items:center;justify-content:center;color:#fff}.card{background:rgba(255,255,255,.07);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:3rem;text-align:center;max-width:440px;width:90%}.ic{font-size:3rem;margin-bottom:1rem}h1{font-size:1.6rem;margin-bottom:.5rem}p{color:rgba(255,255,255,.6);margin-bottom:1.5rem;font-size:.95rem}.fn{background:rgba(255,255,255,.1);padding:.5rem 1rem;border-radius:8px;font-size:.9rem;margin-bottom:1.5rem;word-break:break-all}input{width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:.85rem 1.2rem;color:#fff;font-size:1rem;outline:none;margin-bottom:1rem}button{width:100%;background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:#fff;padding:.9rem;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer}.er{color:#ff6b6b;font-size:.9rem;margin-bottom:1rem}</style></head><body><div class="card"><div class="ic">🔐</div><h1>Password Required</h1><p>This file is password protected</p><div class="fn">📄 ${name}</div>${wrong?'<p class="er">❌ Incorrect password.</p>':''}<form method="GET" action="/download/${id}"><input type="password" name="password" placeholder="Enter file password" required autofocus><button>🔓 Unlock & Download</button></form></div></body></html>`;
 }
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 CloudShare → http://localhost:${PORT}`);
-  console.log(`📁 Uploads  → ${path.join(__dirname, 'uploads')}`);
-  console.log('─'.repeat(48));
-});
+// server started inside initDB().then() above
