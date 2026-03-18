@@ -31,15 +31,45 @@ const pool = process.env.DATABASE_URL
       password: process.env.DB_PASS || 'admin123',
     });
 
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('❌ Database connection failed:', err.message);
-    console.log('   → Update the password field in server.js line ~22');
-  } else {
-    release();
-    console.log('✅ Connected to PostgreSQL.');
+// Auto-create tables on startup — no manual SQL needed
+async function initDB() {
+  try {
+    await pool.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email       VARCHAR(255) UNIQUE NOT NULL,
+        password    TEXT NOT NULL,
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS files (
+        id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        original_name  VARCHAR(500) NOT NULL,
+        file_path      TEXT NOT NULL DEFAULT '',
+        file_size      BIGINT DEFAULT 0,
+        mime_type      VARCHAR(255),
+        expiry         TIMESTAMP NOT NULL,
+        password       TEXT DEFAULT NULL,
+        download_limit INT DEFAULT 100,
+        download_count INT DEFAULT 0,
+        user_id        UUID REFERENCES users(id) ON DELETE CASCADE,
+        created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log('✅ Connected to PostgreSQL. Tables ready.');
+  } catch (err) {
+    console.error('❌ Database setup failed:', err.message);
+    console.log('   → Check your DATABASE_URL environment variable on Render.');
+    process.exit(1);
   }
-});
+}
+
+initDB();
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
 // On Render: use /tmp (writable). On local: use uploads/ folder.
