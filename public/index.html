@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CloudShare — Share Files Instantly</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="landing-body">
+
+  <!-- Animated background particles -->
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
+  <div class="bg-orb orb3"></div>
+  <div class="particles" id="particles"></div>
+
+  <nav class="landing-nav">
+    <div class="logo">
+      <span class="logo-icon">☁️</span>
+      <span class="logo-text">CloudShare</span>
+    </div>
+  </nav>
+
+  <main class="hero">
+    <div class="hero-badge">✦ Instant File Sharing</div>
+    <h1 class="hero-title">
+      Share Files.<br/>
+      <span class="gradient-text">Instantly.</span><br/>
+      Securely.
+    </h1>
+    <p class="hero-sub">
+      Upload any file, generate a shareable link, set expiry times
+      and password protection — all in seconds.
+    </p>
+
+    <div class="hero-actions">
+      <a href="login.html" class="btn btn-primary">
+        <span>Sign In</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="signup.html" class="btn btn-ghost">Create Account</a>
+    </div>
+
+    <!-- Feature pills -->
+    <div class="feature-pills">
+      <span class="pill">⏱ Custom Expiry</span>
+      <span class="pill">🔐 Password Lock</span>
+      <span class="pill">📊 Download Tracking</span>
+      <span class="pill">🗂 Any File Type</span>
+    </div>
+  </main>
+
+  <!-- Feature cards -->
+  <section class="features">
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <h3>Lightning Fast</h3>
+      <p>Upload and share files in under a second with our optimized pipeline.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🛡️</div>
+      <h3>Secure Sharing</h3>
+      <p>Password-protect your files and set automatic expiry times.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📈</div>
+      <h3>Track Downloads</h3>
+      <p>See exactly how many times your files have been downloaded.</p>
+    </div>
+  </section>
+
+  <script>
+    // Generate floating particles
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.cssText = `
+        left:${Math.random()*100}%;
+        top:${Math.random()*100}%;
+        animation-delay:${Math.random()*8}s;
+        animation-duration:${6+Math.random()*6}s;
+        width:${2+Math.random()*4}px;
+        height:${2+Math.random()*4}px;
+        opacity:${0.1+Math.random()*0.4};
+      `;
+      container.appendChild(p);
+    }
+  </script>
+</body>
+</html>

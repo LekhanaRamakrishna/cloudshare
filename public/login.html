@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — CloudShare</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
+
+  <div class="auth-wrapper">
+    <a href="index.html" class="back-link">← Back to Home</a>
+
+    <div class="auth-card">
+      <div class="auth-header">
+        <a href="index.html" class="auth-logo">
+          <span>☁️</span> CloudShare
+        </a>
+        <h1>Welcome back</h1>
+        <p>Sign in to your account to continue</p>
+      </div>
+
+      <div id="alert" class="alert hidden"></div>
+
+      <form id="loginForm" class="auth-form" autocomplete="on">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔑</span>
+            <input type="password" id="password" name="password" placeholder="Your password" required autocomplete="current-password"/>
+            <button type="button" class="toggle-pass" onclick="togglePass('password')">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="btn-text">Sign In</span>
+          <span class="btn-loader hidden">⏳ Signing in...</span>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="signup.html">Create one</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    fetch('/api/me').then(r => {
+      if (r.ok) window.location.href = 'dashboard.html';
+    });
+
+    function togglePass(id) {
+      const el = document.getElementById(id);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const text = btn.querySelector('.btn-text');
+      const loader = btn.querySelector('.btn-loader');
+      const alert = document.getElementById('alert');
+
+      text.classList.add('hidden');
+      loader.classList.remove('hidden');
+      btn.disabled = true;
+      alert.className = 'alert hidden';
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          alert.className = 'alert success';
+          alert.textContent = '✅ Login successful! Redirecting...';
+          setTimeout(() => window.location.href = 'dashboard.html', 800);
+        } else {
+          alert.className = 'alert error';
+          alert.textContent = '❌ ' + data.error;
+          text.classList.remove('hidden');
+          loader.classList.add('hidden');
+          btn.disabled = false;
+        }
+      } catch {
+        alert.className = 'alert error';
+        alert.textContent = '❌ Network error. Please try again.';
+        text.classList.remove('hidden');
+        loader.classList.add('hidden');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

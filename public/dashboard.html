@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — CloudShare</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dash-body">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span>☁️</span><span>CloudShare</span></div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-tab="files"><span>📁</span> My Files</a>
+      <a href="#" class="nav-item" data-tab="upload"><span>⬆️</span> Upload File</a>
+      <a href="#" class="nav-item" data-tab="links"><span>🔗</span> All Links</a>
+      <a href="#" class="nav-item" data-tab="downloader"><span>⬇️</span> Download via Link</a>
+      <a href="#" class="nav-item" data-tab="activity"><span>📊</span> Activity</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <span id="userEmailSidebar">Loading...</span>
+          <small>Free Account</small>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">⬅ Logout</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <header class="dash-header">
+      <div>
+        <h2 id="pageTitle">My Files</h2>
+        <p id="pageSubtitle">Manage all your shared files</p>
+      </div>
+      <div class="header-right">
+        <span class="user-email-badge" id="userEmailBadge">...</span>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode"><span id="themeIcon">🌙</span></button>
+        <button class="btn-upload-top" onclick="showTab('upload')">+ Upload File</button>
+      </div>
+    </header>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="statUploaded">—</div><div class="stat-label">Total Uploaded</div><div class="stat-icon">📤</div></div>
+      <div class="stat-card"><div class="stat-num" id="statActive">—</div><div class="stat-label">Active Files</div><div class="stat-icon">✅</div></div>
+      <div class="stat-card"><div class="stat-num" id="statExpired">—</div><div class="stat-label">Expired</div><div class="stat-icon">⏰</div></div>
+      <div class="stat-card"><div class="stat-num" id="statDownloads">—</div><div class="stat-label">Total Downloads</div><div class="stat-icon">⬇️</div></div>
+    </div>
+
+    <!-- ═══ FILES TAB ═══ -->
+    <section id="tab-files" class="tab-panel active">
+      <div class="panel-toolbar">
+        <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Search files..." oninput="filterFiles()" /></div>
+        <div class="filter-wrap">
+          <select id="filterStatus" onchange="filterFiles()">
+            <option value="all">All Files</option><option value="active">Active</option><option value="expired">Expired</option>
+          </select>
+        </div>
+      </div>
+      <div id="fileTableWrap">
+        <div class="loading-state" id="loadingState"><div class="spinner"></div><p>Loading your files...</p></div>
+        <div class="empty-state hidden" id="emptyState">
+          <div class="empty-icon">📭</div><h3>No files yet</h3><p>Upload your first file to get started</p>
+          <button class="btn-primary-sm" onclick="showTab('upload')">Upload Now</button>
+        </div>
+        <table class="file-table hidden" id="fileTable">
+          <thead><tr><th>File</th><th>Size</th><th>Expiry</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="fileTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══ UPLOAD TAB ═══ -->
+    <section id="tab-upload" class="tab-panel">
+      <div class="upload-layout">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-inner">
+            <div class="drop-icon">☁️</div>
+            <h3>Drag & Drop your file here</h3>
+            <p>or click to browse</p>
+            <input type="file" id="fileInput" hidden/>
+            <button class="btn-browse" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+          </div>
+          <div class="file-preview-wrap hidden" id="filePreviewWrap">
+            <div class="file-selected-info">
+              <span id="selectedFileIcon" class="big-icon">📄</span>
+              <div><div class="selected-name" id="selectedFileName">filename.ext</div><div class="selected-size" id="selectedFileSize">0 KB</div></div>
+              <button class="remove-file-btn" onclick="clearFileSelection()">✕</button>
+            </div>
+          </div>
+        </div>
+        <div class="upload-options">
+          <h3>File Options</h3>
+          <div class="form-group">
+            <label>⏱ Expiry Time</label>
+            <div class="expiry-row">
+              <input type="number" id="expiryValue" value="60" min="1" max="99999"/>
+              <select id="expiryUnit"><option value="1">Minutes</option><option value="60" selected>Hours</option><option value="1440">Days</option></select>
+            </div>
+            <div class="expiry-preview" id="expiryPreview">Expires in 1 hour</div>
+          </div>
+          <div class="form-group">
+            <label>⬇️ Download Limit</label>
+            <input type="number" id="downloadLimit" value="100" min="1" max="10000" class="full-input"/>
+            <small>Max times this file can be downloaded</small>
+          </div>
+          <div class="form-group">
+            <label>🔐 Password (optional)</label>
+            <div class="input-wrap">
+              <input type="password" id="filePassword" placeholder="Leave blank for no password" class="full-input"/>
+              <button type="button" class="toggle-pass" onclick="togglePass('filePassword')">👁</button>
+            </div>
+          </div>
+          <button class="btn-upload-submit" id="uploadBtn" onclick="uploadFile()">
+            <span id="uploadBtnText">⬆ Upload & Generate Link</span>
+          </button>
+          <div class="progress-wrap hidden" id="progressWrap">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-text" id="progressText">Uploading... 0%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BIG LINK RESULT -->
+      <div class="link-result-banner hidden" id="resultBox">
+        <button class="link-result-close" onclick="closeResultBox()" title="Close">✕</button>
+        <div class="link-result-top">
+          <div class="link-success-icon">✅</div>
+          <div>
+            <div class="link-result-title">File uploaded successfully!</div>
+            <div class="link-result-meta">
+              <span id="resultFileName" class="result-fname"></span>
+              <span class="result-dot">·</span>
+              <span id="resultExpiry" class="result-expiry-text"></span>
+            </div>
+          </div>
+        </div>
+        <div class="link-section-label">🔗 Your shareable download link:</div>
+        <div class="big-link-box">
+          <span class="big-link-text" id="resultLink"></span>
+        </div>
+        <div class="link-actions-row">
+          <button class="link-btn-copy" id="linkCopyBtn" onclick="copyLink()">📋 Copy Link</button>
+          <a class="link-btn-open" id="linkOpenBtn" href="#" target="_blank">↗ Open in Browser</a>
+          <button class="link-btn-share" onclick="showTab('links')">🔗 View All Links</button>
+        </div>
+        <div class="link-share-hint">Anyone with this link can download the file — no account needed</div>
+      </div>
+    </section>
+
+    <!-- ═══ ALL LINKS TAB ═══ -->
+    <section id="tab-links" class="tab-panel">
+      <div class="panel-toolbar">
+        <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="linkSearchInput" placeholder="Search links..." oninput="filterLinks()" /></div>
+        <div class="filter-wrap">
+          <select id="linkFilterStatus" onchange="filterLinks()">
+            <option value="all">All Links</option><option value="active">Active Only</option><option value="expired">Expired Only</option>
+          </select>
+        </div>
+      </div>
+      <div id="linksGrid" class="links-grid">
+        <div class="loading-state"><div class="spinner"></div><p>Loading links...</p></div>
+      </div>
+    </section>
+
+    <!-- ═══ DOWNLOAD VIA LINK TAB ═══ -->
+    <section id="tab-downloader" class="tab-panel">
+      <div class="downloader-wrap">
+
+        <!-- Input card -->
+        <div class="dl-input-card">
+          <div class="dl-input-icon">🔗</div>
+          <h3>Paste a Download Link</h3>
+          <p>Enter any CloudShare download link to preview and download the file. The download count will be tracked automatically.</p>
+          <div class="dl-input-row">
+            <input type="text" id="dlLinkInput" placeholder="e.g. http://localhost:3000/download/abc-123-xyz"
+              oninput="onDlLinkInput()" onpaste="setTimeout(previewLink, 100)" onkeydown="if(event.key==='Enter') previewLink()"/>
+            <button class="dl-lookup-btn" onclick="previewLink()" id="dlLookupBtn">🔍 Look Up</button>
+          </div>
+          <div class="dl-input-hint">Paste the full link including <code>http://</code></div>
+        </div>
+
+        <!-- Result preview card (hidden until link looked up) -->
+        <div class="dl-preview-card hidden" id="dlPreviewCard">
+
+          <!-- File info -->
+          <div class="dl-file-header" id="dlFileHeader">
+            <div class="dl-file-icon" id="dlFileIcon">📄</div>
+            <div class="dl-file-details">
+              <div class="dl-file-name" id="dlFileName">filename.ext</div>
+              <div class="dl-file-meta" id="dlFileMeta">—</div>
+            </div>
+            <div id="dlStatusBadge"></div>
+          </div>
+
+          <!-- Stats row -->
+          <div class="dl-stats-row" id="dlStatsRow">
+            <div class="dl-stat"><span id="dlStatSize">—</span><small>File Size</small></div>
+            <div class="dl-stat"><span id="dlStatDownloads">—</span><small>Downloads</small></div>
+            <div class="dl-stat"><span id="dlStatLimit">—</span><small>Limit</small></div>
+            <div class="dl-stat"><span id="dlStatExpiry">—</span><small>Expires</small></div>
+          </div>
+
+          <!-- Password field (shown if protected) -->
+          <div class="dl-password-row hidden" id="dlPasswordRow">
+            <div class="dl-pw-label">🔐 This file is password protected</div>
+            <div class="input-wrap">
+              <input type="password" id="dlPassword" placeholder="Enter file password" class="full-input"/>
+              <button type="button" class="toggle-pass" onclick="togglePass('dlPassword')">👁</button>
+            </div>
+          </div>
+
+          <!-- Download button -->
+          <div class="dl-actions" id="dlActions">
+            <button class="dl-download-btn" id="dlDownloadBtn" onclick="triggerDownload()">
+              <span id="dlDownloadBtnText">⬇️ Download File</span>
+            </button>
+            <button class="dl-reset-btn" onclick="resetDownloader()">✕ Clear</button>
+          </div>
+
+          <!-- Error message -->
+          <div class="dl-error hidden" id="dlError"></div>
+        </div>
+
+        <!-- Recent downloads history -->
+        <div class="dl-history-card" id="dlHistoryCard">
+          <div class="dl-history-title">🕘 Recently Downloaded</div>
+          <div id="dlHistoryList" class="dl-history-list">
+            <div class="dl-history-empty">No downloads yet this session</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══ ACTIVITY TAB ═══ -->
+    <section id="tab-activity" class="tab-panel">
+      <div class="activity-grid" id="activityGrid">
+        <div class="loading-state"><div class="spinner"></div><p>Loading activity...</p></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay hidden" id="previewModal">
+    <div class="modal-card">
+      <div class="modal-header"><h3 id="previewTitle">Preview</h3><button class="modal-close" onclick="closePreview()">✕</button></div>
+      <div class="modal-body" id="previewBody"></div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal-card small">
+      <div class="modal-header"><h3>Delete File?</h3><button class="modal-close" onclick="closeDeleteModal()">✕</button></div>
+      <div class="modal-body">
+        <p>This will permanently delete the file and its download link.</p>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+          <button class="btn-danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
