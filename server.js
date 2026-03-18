@@ -6,7 +6,7 @@
 
 const express  = require('express');
 const session  = require('express-session');
-const bcrypt   = require('bcrypt');
+const bcrypt   = require('bcryptjs');
 const multer   = require('multer');
 const path     = require('path');
 const fs       = require('fs');
@@ -17,13 +17,19 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── PostgreSQL ───────────────────────────────────────────────────────────────
-const pool = new Pool({
-  host:     process.env.DB_HOST || 'localhost',
-  port:     parseInt(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME || 'cloudshare',
-  user:     process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASS || 'admin123',   // ← YOUR PG PASSWORD HERE
-});
+// Supports both Render (DATABASE_URL) and local (individual vars)
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }, // required for Render
+    })
+  : new Pool({
+      host:     process.env.DB_HOST || 'localhost',
+      port:     parseInt(process.env.DB_PORT) || 5432,
+      database: process.env.DB_NAME || 'cloudshare',
+      user:     process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASS || 'admin123',
+    });
 
 pool.connect((err, client, release) => {
   if (err) {
@@ -36,11 +42,16 @@ pool.connect((err, client, release) => {
 });
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
+// On Render: use /tmp (writable). On local: use uploads/ folder.
+const UPLOAD_DIR = process.env.RENDER
+  ? '/tmp/cloudshare-uploads'
+  : path.join(__dirname, 'uploads');
+
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
+    cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
     cb(null, uuidv4() + path.extname(file.originalname));
